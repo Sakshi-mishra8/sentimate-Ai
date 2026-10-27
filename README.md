@@ -6,7 +6,9 @@ A working customer-feedback tool. Real customers write feedback, the AI analyzes
 Open the project folder containing `app.py`. Click the File Explorer address bar, type `powershell`, and press Enter.
 ### First time only (setup)
    python -m venv venv
+   
    .\venv\Scripts\Activate.ps1
+   
    pip install -r requirements.txt
 
 ### Every time you want to run it
