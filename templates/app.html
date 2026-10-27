@@ -1,0 +1,286 @@
+{% macro dash(p) %}
+          <div class="summary">
+            <div>
+              <h2>AI summary <span class="tag" id="{{p}}sumSource">rule-based</span></h2>
+              <p id="{{p}}sumText"></p>
+              <ul id="{{p}}sumActions" class="actions"></ul>
+            </div>
+            <a id="{{p}}reportLink" class="btn ghost small" href="/report" target="_blank">Open printable report</a>
+          </div>
+          <dl class="kpis">
+            <div><dt>Reviews analyzed</dt><dd id="{{p}}kpiTotal">0</dd></div>
+            <div><dt>Average score</dt><dd id="{{p}}kpiAvg">0</dd></div>
+            <div><dt>Net sentiment index</dt><dd id="{{p}}kpiIndex">0</dd></div>
+            <div><dt>Urgent (P1)</dt><dd id="{{p}}kpiUrgent">0</dd></div>
+            <div><dt>Main emotion</dt><dd id="{{p}}kpiEmotion">-</dd></div>
+          </dl>
+          <ul id="{{p}}alertList" class="alerts"></ul>
+          <div class="grid">
+            <figure class="span2"><figcaption id="{{p}}trendCap">Average score per day</figcaption><div class="cb"><canvas id="{{p}}chTrend"></canvas></div></figure>
+            <figure><figcaption>Sentiment split</figcaption><div class="cb"><canvas id="{{p}}chSplit"></canvas></div></figure>
+            <figure class="span2"><figcaption>Score by topic (lowest first)</figcaption><div class="cb"><canvas id="{{p}}chAspects"></canvas></div></figure>
+            <figure><figcaption>Emotions</figcaption><div class="cb"><canvas id="{{p}}chEmotion"></canvas></div></figure>
+            <figure><figcaption>Score by channel</figcaption><div class="cb"><canvas id="{{p}}chChannel"></canvas></div></figure>
+            <figure class="span2"><figcaption>What customers want (intent)</figcaption><div class="cb"><canvas id="{{p}}chIntent"></canvas></div></figure>
+          </div>
+{% endmacro %}
+{% macro ins(p) %}
+          <div class="grid">
+            <figure class="span2"><figcaption>Forecast <span class="tag" id="{{p}}fcTag"></span></figcaption><p class="small muted" id="{{p}}fcText"></p><div class="cb"><canvas id="{{p}}chForecast"></canvas></div></figure>
+            <figure><figcaption>Customers at risk (P1)</figcaption><ul id="{{p}}riskList" class="risklist"></ul></figure>
+          </div>
+          <h2 class="sec">Complaint themes found by AI</h2>
+          <p class="small muted">K-Means clustering groups negative reviews that talk about the same thing. No labels were given.</p>
+          <div id="{{p}}themeList" class="themes"></div>
+          <div class="grid two">
+            <figure><figcaption>Customers praise</figcaption><div id="{{p}}posCloud" class="cloud pos"></div></figure>
+            <figure><figcaption>Customers complain about</figcaption><div id="{{p}}negCloud" class="cloud neg"></div></figure>
+          </div>
+
+{% endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard - Customer Sentiment AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=v) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v=v) }}">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <a class="brand" href="/">Customer Sentiment AI</a>
+    <nav id="nav" aria-label="Dashboard sections">
+      <button data-view="overview" class="on">Overview</button>
+      <button data-view="analyze">Analyze</button>
+      <button data-view="inbox">Inbox</button>
+      <button data-view="bulk">Bulk upload</button>
+      <button data-view="csv">CSV dashboard</button>
+      <button data-view="ask">Ask AI</button>
+      <button data-view="history">History</button>
+    </nav>
+    <div class="side-foot">
+      <p class="who">{{ name }}</p>
+      <p class="ver">{{ app_version }}</p>
+      <a href="/logout">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="bar">
+      <h1 id="viewTitle">Overview</h1>
+      <div class="bar-right">
+        <div id="statusChips" class="chips-row"></div>
+        <label class="sr" for="channelFilter">Channel</label>
+        <select id="channelFilter">
+          <option value="All">All channels</option>
+          {% for c in channels %}<option>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- OVERVIEW -->
+      <section class="view" id="v-overview">
+        <div id="ovEmpty" class="empty" hidden>
+          <h2>No reviews yet</h2>
+          <p>Analyze a review, upload a CSV, or share your feedback link to fill this page.</p>
+          <div class="chips-row center">
+            <button class="btn primary small" data-goto="bulk" type="button">Upload a CSV</button>
+            <button class="btn ghost small" data-goto="inbox" type="button">Share your feedback link</button>
+            <button class="btn ghost small" data-goto="analyze" type="button">Analyze one review</button>
+          </div>
+        </div>
+        <div id="ovBody">
+          {{ dash('') }}
+        </div>
+      </section>
+
+      <!-- ANALYZE -->
+      <section class="view" id="v-analyze" hidden>
+        <div class="bench">
+          <div class="bench-in">
+            <label for="reviewText">Customer feedback</label>
+            <textarea id="reviewText" rows="7" maxlength="3000" placeholder="Paste a review. English and Hinglish both work."></textarea>
+            <div class="chips-row" id="sampleChips">
+              <button class="chip" data-t="Absolutely love this product! The quality is amazing and delivery was super fast.">Happy</button>
+              <button class="chip" data-t="The app keeps crashing at checkout and I lost my payment. Totally unacceptable, I want a refund and I will never use it again.">Angry</button>
+              <button class="chip" data-t="The product quality is excellent, but the delivery was late and the support staff was rude.">Mixed</button>
+              <button class="chip" data-t="Bakwas service, kharab product aur delivery bhi late. Bahut pareshan hu.">Hinglish</button>
+              <button class="chip" data-t="Why is the price so high? Can you add a cheaper plan? I would love a dark mode too.">Question</button>
+            </div>
+            <div class="row2">
+              <div class="fld"><label for="channelSel">Channel</label><select id="channelSel">{% for c in channels %}<option{{ " selected" if c == "Website" else "" }}>{{ c }}</option>{% endfor %}</select></div>
+              <div class="fld"><label for="engineSel">AI engine</label>
+                <select id="engineSel">
+                  <option value="ensemble">Ensemble (models vote)</option>
+                  <option value="vader">VADER only</option>
+                  <option value="ml">Our ML model only</option>
+                  <option value="transformer">DistilBERT only</option>
+                </select></div>
+            </div>
+            <button id="analyzeBtn" class="btn primary" type="button">Analyze and save</button>
+            <p id="anStatus" class="status" role="status"></p>
+          </div>
+
+          <div class="bench-out" aria-live="polite">
+            <div id="anEmpty" class="empty"><p>Type a review. The result appears here live.</p></div>
+            <div id="anResult" hidden>
+              <div class="gauge-row">
+                <svg class="gauge" viewBox="0 0 240 140" role="img" aria-label="Sentiment gauge">
+                  <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d6405a"/><stop offset=".5" stop-color="#d9a21b"/><stop offset="1" stop-color="#12936c"/></linearGradient></defs>
+                  <path d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke="url(#gg)" stroke-width="18" stroke-linecap="round"/>
+                  <g id="needle" class="needle"><line x1="120" y1="120" x2="120" y2="38" stroke="#0f1830" stroke-width="4" stroke-linecap="round"/><circle cx="120" cy="120" r="9" fill="#0f1830"/></g>
+                </svg>
+                <div class="verdict" id="verdict"><strong id="vLabel">-</strong><span id="vMeta"></span></div>
+              </div>
+              <p id="warn" class="warn" hidden></p>
+              <div class="chips-row tight" id="metaChips"></div>
+              <p id="explain" class="explain" hidden></p>
+
+              <h3>Model vote <span class="muted small" id="agree"></span></h3>
+              <ul id="modelList" class="models"></ul>
+
+              <div class="pair">
+                <div><h3>Emotion</h3><p class="big" id="emoName">-</p><div id="emoBars" class="bars"></div></div>
+                <div><h3>Customer may leave</h3><p class="big" id="riskName">-</p><p class="small muted" id="riskDetail"></p></div>
+              </div>
+
+              <h3>Topic by topic</h3><ul id="aspectList" class="aspects"></ul>
+              <h3>Words that moved the score</h3><div id="wordList" class="words"></div>
+
+              <h3>Reply Studio <span class="tag" id="replySrc"></span></h3>
+              <div class="chips-row" id="toneRow">
+                <button class="chip on" data-tone="Professional">Professional</button>
+                <button class="chip" data-tone="Empathetic">Empathetic</button>
+                <button class="chip" data-tone="Friendly">Friendly</button>
+                <button class="chip" data-tone="Short">Short</button>
+              </div>
+              <div class="reply"><p id="replyText"></p><button id="copyReply" class="btn ghost small" type="button">Copy reply</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INBOX -->
+      <section class="view" id="v-inbox" hidden>
+        <div class="srcbar"><span class="small muted">Messages from:</span><strong id="inboxSourceLabel">nothing uploaded yet</strong>
+          <button id="inboxClear" class="btn ghost small" type="button" hidden>Clear Inbox</button></div>
+        <div id="inboxError" class="form-error" role="alert" hidden></div>
+        <div class="inbox-bar">
+          <div class="chips-row" id="inboxFilter">
+            <button class="chip on" data-f="open" type="button" title="Complaints, questions, refund requests, bugs and urgent customers that still wait for a reply">Needs action</button>
+            <button class="chip" data-f="all" type="button">All reviews</button>
+            <button class="chip" data-f="done" type="button" title="Already marked Replied or Resolved">Done</button>
+          </div>
+          <span class="small muted" id="inboxCount"></span>
+          <span class="small muted" id="inboxUpdated"></span>
+          <span class="small" id="inboxNote" hidden>New reviews arrived. Click Refresh.</span>
+          <button id="inboxRefresh" class="btn ghost small" type="button">Refresh</button>
+        </div>
+        <div id="inboxEmpty" class="empty" hidden><h2 id="inboxEmptyTitle">Inbox is empty</h2><p id="inboxEmptyText">Upload a CSV in Bulk upload, and its messages appear here. Customer messages from your feedback link appear under "Customer feedback form". Other saved reviews are in History.</p></div>
+        <ul id="inboxList" class="inbox"></ul>
+      </section>
+
+      <!-- BULK -->
+      <section class="view" id="v-bulk" hidden>
+        <p class="lead">Upload a CSV with one review per row (up to 300). The AI scores every row and adds it to your dashboard.</p>
+        <div class="bulk">
+          <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="Choose a CSV file, or drop one here">
+            <input type="file" id="csvFile" accept=".csv,text/csv" class="sr" tabindex="-1" aria-hidden="true">
+            <p><strong id="fileName">Click here or drop a CSV file</strong></p>
+            <p class="small muted">Up to 2 MB and 300 reviews per file. One review per row.</p>
+            <button type="button" class="btn ghost small" id="pickFile">Choose file</button>
+            <a class="small" href="/static/review_template.csv" download>Download the CSV template</a>
+          </div>
+          <div>
+            <div class="fld"><label for="bulkChannel">Channel for these reviews</label><select id="bulkChannel">{% for c in channels %}<option{{ " selected" if c == "Website" else "" }}>{{ c }}</option>{% endfor %}</select></div>
+            <button id="uploadBtn" class="btn primary" type="button" disabled>Analyze CSV</button>
+            <p id="bulkStatus" class="status" role="status"></p>
+            <div id="bulkSummary" class="bulk-sum" hidden></div>
+            <button id="openDash" class="btn primary" type="button" hidden>View dashboard and forecast for this file</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="bulkWrap" hidden><table><thead><tr><th>Review</th><th>Result</th><th>Score</th><th>Emotion</th><th>Intent</th><th>Churn risk</th></tr></thead><tbody id="bulkRows"></tbody></table></div>
+      </section>
+
+      <!-- CSV DASHBOARD (one uploaded file at a time, with its own forecast) -->
+      <section class="view" id="v-csv" hidden>
+        <div id="csvEmpty" class="empty" hidden>
+          <h2>No CSV uploaded yet</h2>
+          <p>Upload a CSV in Bulk upload. You then get a dashboard and a forecast made only from that file.</p>
+          <button class="btn primary small" data-goto="bulk" type="button">Go to Bulk upload</button>
+        </div>
+        <div id="csvBody" hidden>
+          <div class="csvbar">
+            <label for="csvSelect">Uploaded file:</label>
+            <select id="csvSelect"></select>
+            <button id="csvDelete" class="btn danger small" type="button">Delete this file's data</button>
+          </div>
+          {{ dash('c_') }}
+          <h2 class="sec">Forecast and AI insights for this file</h2>
+          {{ ins('c_') }}
+          <h2 class="sec">Our ML model</h2>
+          <div id="modelCard" class="modelcard"></div>
+        </div>
+      </section>
+
+      <!-- ASK -->
+      <section class="view" id="v-ask" hidden>
+        <div class="chat">
+          <div id="chatLog" class="chat-log" aria-live="polite">
+            <div class="msg bot"><p>Ask me about your customer data. You can write in English, Hindi or Hinglish.</p></div>
+          </div>
+          <div class="chips-row" id="chatChips">
+            <button class="chip">What are customers complaining about?</button>
+            <button class="chip">What do customers like most?</button>
+            <button class="chip">Is sentiment improving?</button>
+            <button class="chip">Who is at risk of leaving?</button>
+            <button class="chip">Give me a summary</button>
+            <button class="chip">Sabse badi shikayat kya hai?</button>
+            <button class="chip">Kitne reviews hain?</button>
+            <button class="chip">Overview ka kaam kya hai?</button>
+            <button class="chip">What is the Inbox for?</button>
+            <button class="chip">ग्राहक किस बात से खुश हैं?</button>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <label class="sr" for="chatInput">Your question</label>
+            <input id="chatInput" placeholder="Type a question..." maxlength="500" autocomplete="off">
+            <button class="btn primary" type="submit">Ask</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section class="view" id="v-history" hidden>
+        <div class="collect">
+          <h2>Customer feedback link</h2>
+          <p class="muted small">Send this link to customers by WhatsApp, email or put it on your website. Every message they write is analyzed by the AI and saved here in History (Source: Customer feedback form).</p>
+          <div class="linkrow">
+            <input id="feedbackLink" readonly aria-label="Your feedback link">
+            <button id="copyLink" class="btn primary small" type="button">Copy link</button>
+            <a id="openLink" class="btn ghost small" href="#" target="_blank" rel="noopener">Open form</a>
+          </div>
+          <p class="small muted">Only people who can reach this computer can open the link. To share it with anyone on the internet, put the project on a web server.</p>
+        </div>
+                <p id="histNote" class="small muted"></p>
+        <div class="hist-bar">
+          <a id="exportLink" class="btn ghost small" href="/api/export.csv">Download CSV</a>
+          <button id="clearBtn" class="btn danger small" type="button">Delete all my data</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Time</th><th>Source</th><th>Review</th><th>Result</th><th>Score</th><th>Emotion</th><th>Intent</th><th>Priority</th></tr></thead>
+          <tbody id="histRows"></tbody></table>
+          <p id="histEmpty" class="muted pad" hidden>Nothing saved yet.</p></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="{{ url_for('static', filename='js/vendor/chart.umd.js', v=v) }}"></script>
+<script src="{{ url_for('static', filename='js/app.js', v=v) }}"></script>
+</body>
+</html>

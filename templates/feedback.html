@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Share your feedback - {{ business }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=v) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v=v) }}">
+</head>
+<body class="fb-body">
+<main class="fb">
+  <p class="fb-biz">{{ business }}</p>
+  <div id="formBox">
+    <h1>How was your experience?</h1>
+    <p class="muted">Tell us what went well and what did not. A real person reads every message.</p>
+    <form id="fbForm" novalidate>
+      <div class="fld"><label for="text">Your feedback</label><textarea id="text" rows="6" maxlength="2000" required placeholder="Write here..."></textarea></div>
+      <div class="fld"><label for="name">Your name <span class="muted">(optional)</span></label><input id="name" maxlength="80" autocomplete="name"></div>
+      <div class="fld"><label for="contact">Email or phone <span class="muted">(optional, only if you want a reply)</span></label><input id="contact" maxlength="120" autocomplete="email"></div>
+      <input id="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p id="err" class="form-error" role="alert" hidden></p>
+      <button class="btn primary full" id="send" type="submit">Send feedback</button>
+    </form>
+  </div>
+  <div id="thanks" hidden>
+    <h1>Thank you!</h1>
+    <p class="muted">Your feedback was received. The team at {{ business }} will look at it soon.</p>
+    <button class="btn ghost" id="again" type="button">Send another message</button>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  $("fbForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("err").hidden = true;
+    const btn = $("send"); btn.disabled = true; btn.textContent = "Sending...";
+    try {
+      const res = await fetch(location.pathname, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: $("text").value, name: $("name").value, contact: $("contact").value, website: $("website").value }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+      $("formBox").hidden = true; $("thanks").hidden = false;
+    } catch (err) { $("err").textContent = err.message; $("err").hidden = false; }
+    finally { btn.disabled = false; btn.textContent = "Send feedback"; }
+  });
+  $("again").addEventListener("click", () => { $("fbForm").reset(); $("thanks").hidden = true; $("formBox").hidden = false; });
+})();
+</script>
+</body>
+</html>

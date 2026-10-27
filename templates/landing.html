@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customer Sentiment AI - know how every customer feels</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=v) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css', v=v) }}">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="/"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 17c1.600 3.200 4.300 4.500 7 4.500s5.400-1.300 7-4.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10.500" cy="11.500" r="1.600" fill="currentColor"/><circle cx="19.500" cy="11.500" r="1.600" fill="currentColor"/></svg>Customer Sentiment AI</a>
+  <nav aria-label="Main">
+    <a href="#features">What it does</a><a href="#pipeline">How it works</a><a href="#stack">Tech</a>
+  </nav>
+  <div class="nav-cta">
+    {% if logged_in %}<a class="btn primary small" href="/app">Open dashboard</a>
+    {% else %}<a class="btn ghost small" href="/login">Log in</a><a class="btn primary small" href="/register">Get started</a>{% endif %}
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="hero-copy">
+    <h1>Know how every customer feels, before they tell you.</h1>
+    <p>Give customers one link to share feedback. The AI reads every message, finds the emotion and the topic, warns you about customers who may leave, and helps your team reply.</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="/register">Create free account</a>
+      <a class="btn ghost" href="/login">Log in</a>
+    </div>
+    <p class="hero-note muted small">Free. Your data is private to your account.</p>
+  </div>
+
+  <div class="tryit" id="try">
+    <h2>Try it on a real review</h2>
+    <label for="tryText">Paste any customer review</label>
+    <textarea id="tryText" rows="4" maxlength="1500" placeholder="Example: Great product but the delivery was late and support never replied."></textarea>
+    <button id="tryBtn" class="btn primary" type="button">Analyze</button>
+    <p id="tryStatus" class="status" role="status"></p>
+    <div id="tryOut" hidden>
+      <div class="try-top"><span id="tryLabel" class="badge"></span><strong id="tryScore"></strong></div>
+      <div class="chips-row" id="tryChips"></div>
+      <p id="tryExplain" class="explain" hidden></p>
+      <ul id="tryAspects" class="try-aspects"></ul>
+      <p class="small muted">Suggested reply</p>
+      <p id="tryReply" class="try-reply"></p>
+      <p class="small muted">Nothing you type here is saved.</p>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <h2>What the AI does for you</h2>
+  <dl class="features">
+    <div><dt>Reads the mood</dt><dd>Positive, neutral or negative with a 0-100 score. Our own trained model, VADER and optional DistilBERT vote together.</dd></div>
+    <div><dt>Finds the emotion</dt><dd>Joy, anger, sadness, fear or surprise, so you know if a customer is disappointed or furious.</dd></div>
+    <div><dt>Checks every topic</dt><dd>"Great product but late delivery" becomes two scores: quality up, delivery down.</dd></div>
+    <div><dt>Predicts who will leave</dt><dd>Churn risk and a P1/P2/P3 priority for each message, built from mood, anger and warning words.</dd></div>
+    <div><dt>Understands Hinglish</dt><dd>Reviews like "bakwas service, delivery late" are scored correctly, not ignored.</dd></div>
+    <div><dt>Groups complaints</dt><dd>K-Means clustering finds the main complaint themes without any labels.</dd></div>
+    <div><dt>Forecasts and alerts</dt><dd>Regression predicts the next scores. Anomaly rules warn you about sudden drops.</dd></div>
+    <div><dt>Writes and answers</dt><dd>Reply Studio drafts responses in four tones. Ask AI answers questions about your data.</dd></div>
+    <div><dt>Collects feedback</dt><dd>Share one link by WhatsApp, email or your website. Every message is analyzed the moment it arrives and saved in History.</dd></div>
+    <div><dt>Team inbox</dt><dd>Upload a CSV and its messages land here, urgent customers first. Write a reply, send it by email, and mark it resolved.</dd></div>
+  </dl>
+</section>
+
+<section id="pipeline" class="section dark">
+  <h2>What happens to each review</h2>
+  <ol class="pipeline">
+    <li><strong>Clean and split</strong><span>Text is cut into clauses so mixed opinions stay separate.</span></li>
+    <li><strong>Three models vote</strong><span>VADER rules, our own trained Naive Bayes model, and DistilBERT.</span></li>
+    <li><strong>Emotion and topic</strong><span>Emotion lexicon plus aspect-based sentiment for each topic.</span></li>
+    <li><strong>Risk and priority</strong><span>Churn points, intent detection and a P1-P3 label.</span></li>
+    <li><strong>Insight and reply</strong><span>Saved to the database, then clustered, forecast and answered.</span></li>
+  </ol>
+</section>
+
+<section id="stack" class="section">
+  <h2>Built with</h2>
+  <p class="stack">Python &middot; Flask &middot; SQLite &middot; NumPy &middot; VADER &middot; Hugging Face Transformers &middot; HTML &middot; CSS &middot; JavaScript &middot; Chart.js</p>
+  <div class="cta">
+    <h3>Start collecting real feedback today.</h3>
+    <a class="btn primary" href="/register">Create free account</a>
+  </div>
+</section>
+</main>
+<footer class="foot">Customer Sentiment AI &middot; BCA project</footer>
+<script src="{{ url_for('static', filename='js/landing.js', v=v) }}"></script>
+</body>
+</html>

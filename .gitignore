@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+sentiment.db
+model.pkl
+model_meta.json
+.env
+.secret_key
+sentiment.db-wal
+sentiment.db-shm

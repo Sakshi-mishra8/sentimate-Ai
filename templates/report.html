@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sentiment report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=v) }}">
+  <style>
+    body { background: #fff; } .page { max-width: 860px; margin: 0 auto; padding: 40px 28px 60px; }
+    h1 { font-size: 2.4rem; } h2 { font-size: 1.4rem; margin: 32px 0 10px; } .meta { color: var(--slate); margin: 6px 0 24px; }
+    .k { display: grid; grid-template-columns: repeat(4,1fr); border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; }
+    .k div { padding: 14px 16px; border-right: 1px solid var(--line); } .k div:last-child { border: 0; }
+    .k b { display: block; font: 700 1.8rem var(--head); } .k span { color: var(--slate); font-size: .85rem; }
+    table { min-width: 0; } ul { padding-left: 1.2rem; } li { margin-bottom: 4px; }
+    .bar { height: 10px; background: var(--mist); border-radius: 99px; overflow: hidden; } .bar i { display: block; height: 100%; }
+    .noprint { margin-bottom: 20px; display: flex; gap: 10px; }
+    @media print { .noprint { display: none; } .page { padding: 0; } }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="noprint"><button class="btn primary small" onclick="window.print()">Print or save as PDF</button><a class="btn ghost small" href="/app">Back to dashboard</a></div>
+  <h1>Customer sentiment report</h1>
+  <p class="meta">Prepared for {{ name }} &middot; {{ now }}</p>
+  {% if st.total == 0 %}
+    <p>No data yet. Analyze some reviews first.</p>
+  {% else %}
+  <div class="k">
+    <div><b>{{ st.total }}</b><span>Reviews analyzed</span></div>
+    <div><b>{{ st.average }}/100</b><span>Average score</span></div>
+    <div><b>{{ '%+d' % st.index }}</b><span>Net sentiment index</span></div>
+    <div><b>{{ st.urgent }}</b><span>Urgent (P1)</span></div>
+  </div>
+
+  <h2>Executive summary</h2>
+  <p>{{ summ.text }}</p>
+  <h2>Recommended actions</h2>
+  <ul>{% for a in summ.actions %}<li>{{ a }}</li>{% endfor %}</ul>
+
+  <h2>Alerts</h2>
+  <ul>{% for a in ins.alerts %}<li>{{ a.text }}</li>{% endfor %}</ul>
+
+  <h2>Score by topic</h2>
+  <table><thead><tr><th>Topic</th><th>Score</th><th style="width:40%"></th><th>Mentions</th></tr></thead><tbody>
+  {% for a in st.aspects %}<tr><td>{{ a.name }}</td><td>{{ a.score }}</td>
+    <td><div class="bar"><i style="width:{{ a.score }}%; background: {{ '#12936c' if a.score >= 55 else '#d6405a' if a.score <= 45 else '#d9a21b' }}"></i></div></td><td>{{ a.mentions }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  {% if ins.themes %}<h2>Complaint themes</h2>
+  <ul>{% for t in ins.themes %}<li><strong>{{ t.name }}</strong> - {{ t.count }} reviews. Example: "{{ t.examples[0] }}"</li>{% endfor %}</ul>{% endif %}
+
+  {% if ins.forecast %}<h2>Forecast</h2><p>Sentiment is <strong>{{ ins.forecast.trend }}</strong>. Next 7 predicted scores: {{ ins.forecast.next | join(', ') }}.</p>{% endif %}
+
+  {% if ins.at_risk %}<h2>Customers needing urgent attention</h2>
+  <ul>{% for r in ins.at_risk %}<li>"{{ r.text }}" ({{ r.channel }}, risk {{ r.points }}/100)</li>{% endfor %}</ul>{% endif %}
+  {% endif %}
+</div>
+</body>
+</html>
